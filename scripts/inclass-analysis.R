@@ -97,7 +97,14 @@ class_metrics <- metric_set(sensitivity,
                             roc_auc)
 
 testing(biomarker_split) %>%
-  add_predictions(fit, type = 'response') %>%
-  class_metrics(estimate = factor(pred > 0.5),
-              truth = factor(class), pred,
-              event_level = 'second')
+  add_predictions(fit, type = "response") %>%
+  mutate(
+    actual = factor(class, levels = c(FALSE, TRUE)),
+    predicted = factor(pred > 0.5, levels = c(FALSE, TRUE))
+  ) %>%
+  class_metrics(
+    truth = actual,
+    estimate = predicted,
+    pred,
+    event_level = "second"
+  )
