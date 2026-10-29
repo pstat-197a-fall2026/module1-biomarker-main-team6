@@ -1,6 +1,7 @@
+
 library(tidyverse)
 
-# Question 1: Compare raw and log-transformed protein distributions
+# Question 1
 
 var_names <- read_csv(
   "data/biomarker-raw.csv",
@@ -31,7 +32,8 @@ raw <- read_csv(
 
 protein_cols <- setdiff(names(raw), c("group", "empty", "ados"))
 
-sample_proteins <- protein_cols[1:4]
+set.seed(1)
+sample_proteins <- sample(protein_cols, 4)
 
 for (protein in sample_proteins) {
   values <- raw[[protein]]
@@ -58,7 +60,7 @@ for (protein in sample_proteins) {
   )
 }
 
-# Question 2: Identify outliers without trimming
+# Question 2
 
 biomarker_untrimmed <- raw %>%
   mutate(
@@ -87,11 +89,15 @@ outlier_counts <- biomarker_untrimmed %>%
     total_measurements = sum(!is.na(value)),
     outlier_count = sum(abs(value) > 3, na.rm = TRUE),
     .groups = "drop"
+  ) %>%
+  mutate(
+    outlier_rate = outlier_count / total_measurements
   )
 
 outlier_counts %>%
   arrange(desc(outlier_count)) %>%
-  print(n = Inf)
+  head(15) %>%
+  print()
 
 group_summary <- outlier_counts %>%
   group_by(group) %>%
@@ -100,13 +106,17 @@ group_summary <- outlier_counts %>%
     average_outliers_per_subject = mean(outlier_count),
     median_outliers_per_subject = median(outlier_count),
     subjects_with_outliers = sum(outlier_count > 0),
+    average_outlier_rate = mean(outlier_rate),
     .groups = "drop"
   )
 
 print(group_summary)
 
+wilcox.test(outlier_count ~ group, data = outlier_counts)
+
 ggplot(outlier_counts, aes(x = group, y = outlier_count)) +
-  geom_boxplot(fill = "gray80", color = "gray30") +
+  geom_boxplot(fill = "gray80", color = "gray30", outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.5, size = 1.5) +
   labs(
     title = "Outlying Protein Measurements per Subject",
     x = "Group",
