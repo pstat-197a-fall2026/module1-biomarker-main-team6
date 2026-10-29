@@ -1,7 +1,7 @@
 ---
 title: "Biomarkers of ASD"
 subtitle: "If you want a subtitle put it here"
-author: "List names here"
+author: "Kiera Doan, Laiyee Ke, Aaron Tang, Kevin Wu"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -29,9 +29,37 @@ Write a brief one-paragraph abstract that describes the contents of your write-u
 
 Write a brief data description, including: how data were obtained; sample characteristics; variables measured; and data preprocessing. This can be largely based on the source paper and should not exceed 1-2 paragraphs.
 
+The data for this analysis come from Hewitson et al. (2021), *Blood biomarker discovery for autism spectrum disorder*: A proteomic analysis, published in PLOS ONE. The data were obtained from the publicly available dataset accompanying the study, which aimed to identify blood based biomarkers for the early detection of autism spectrum disorder (ASD). The dataset includes 154 subjects, 76 with ASD and 78 typically developing (TD) controls. For each subject, the dataset contains measurements of 1.317 protein measurements, each subjects diagnostic group (ASD or TD), and their total score on the Autism Diagnostic Observation Schedule (ADOS), which assesses autism related behaviors. Unlike the original published analysis, which excluded 192 unidentified variables, this assignment retains those variables for analysis.
+
+The raw data were processed using the provided preprocessing.R script. As an initial preprocessing step, observations containing missing values were excluded from the dataset.
+
+The protein measurements were log transformed using base 10 to reduce skewness and make their distibutions more suitable for statistical analysis. Next, the transformed measurements were centered and scaled so that each protein had a mean of approximately zero and a standard deviation of one, allowing protein levels to be compared on a consistent scale. To reduce the influence of extreme values, standardized measurements greater than 3 were capped at 3, while those blow -3 were capped at -3. The diagnostic group and ADOS scores were left unchanged. The processed dataset was saved as biomarker-clean.RData for further analysis.
+
 ## Summary of published analysis
 
 Summarize the methodology of the paper in 1-3 paragraphs. You need not explain the methods in depth as we did in class; just indicate what methods were used and how they were combined. If possible, include a diagram that depicts the methodological design. (Quarto has support for [GraphViz and Mermaid flowcharts](https://quarto.org/docs/authoring/diagrams.html).) Provide key results: the proteins selected for the classifier and the estimated accuracy.
+
+The researchers used three approaches to identify proteins that could help distinguish between the ASD and TD groups including random forest analysis, t-tests, and correlation analysis. Random forest analysis ranked proteins according to their importance in predicting diagnostic group, while t-tests identified proteins with statistically significant differences in levels between the groups. The third method examined correlations between protein levels and ADOS total scores to identify proteins associated with ASD severity. The researchers ranked the proteins identified by each method and compared the top 10 results from each approach. Five proteins appeared among the top 10 for all three methods and were selected as core proteins: MAPK14, IgD, DERM, EPHB2, and suPAR. This approach combined complementary methods to identify proteins based on their predictive importance, differences between groups, and relationships with symptom severity.
+
+Next, the researchers used logistic regression to build and evaluate classifiers based on combinations of the selected proteins. They tested whether adding other candidate proteins to the five core proteins improved the model's ability to distinguish ASD from TD. To evaluate performance, the data were randomly divided into training sets containing 80% of subjects and test sets containing the remaining 20%. This process was repeated 1,000 times to reduce the influence of any single random split. The researchers compared models using the area under the receiver operating characteristic curve (AUC), which measures how well a model distinguishes between the two groups.
+
+The final nine-protein panel consisted of MAPK14, IgD, DERM, EPHB2, suPAR, ROR1, GI24, eIF-4H, and ARSB. The original paper reported a mean AUC of 0.8599, or approximately 86%, with a sensitivity of approximately 83.5% and specificity of approximately 82.2%. Although these results initially suggested that the protein panel could distinguish between the groups, the paper was retracted in 2024 because the correlation analysis incorrectly included TD participants with randomly assigned ADOS scores. Consequently, the conclusions supporting the nine protein panel are considered unreliable.
+
+```{mermaid}
+flowchart TD
+    A["Protein selection"] --> B["Random forest"]
+    A --> C["T-tests"]
+    A --> D["Correlation with ADOS"]
+
+    B --> E["Five shared core proteins"]
+    C --> E
+    D --> E
+
+    E --> F["Test protein combinations<br/>using logistic regression"]
+    F --> G["Evaluate with repeated<br/>80/20 train-test splits"]
+    G --> H["Compare models using AUC"]
+    H --> I["Final nine-protein panel"]
+```
 
 ## Findings
 
@@ -40,6 +68,132 @@ Summarize your findings here. I've included some subheaders in a way that seems 
 ### Impact of preprocessing and outliers
 
 Tasks 1-2
+
+```{r}
+
+library(tidyverse)
+
+var_names <- read_csv(
+  "../data/biomarker-raw.csv",
+  skip = 0,
+  n_max = 2,
+  col_select = -(1:2),
+  col_names = FALSE,
+  show_col_types = FALSE
+) %>%
+  t() %>%
+  as_tibble() %>%
+  rename(name = V1, abbreviation = V2) %>%
+  na.omit()
+
+raw <- read_csv(
+  "../data/biomarker-raw.csv",
+  skip = 2,
+  col_select = -2L,
+  col_names = c("group", "empty", pull(var_names, abbreviation), "ados"),
+  na = c("-", ""),
+  show_col_types = FALSE
+) %>%
+  filter(!is.na(group))
+
+protein_cols <- setdiff(names(raw), c("group", "empty", "ados"))
+
+set.seed(1)
+sample_proteins <- sample(protein_cols, 4)
+
+for (protein in sample_proteins) {
+  values <- raw[[protein]]
+  values <- values[is.finite(values) & values > 0]
+  
+  hist(
+    values,
+    main = paste("Raw Protein Levels:", protein),
+    xlab = "Protein Level",
+    ylab = "Number of Subjects",
+    col = "gray80",
+    border = "white",
+    breaks = 20
+  )
+  
+  hist(
+    log10(values),
+    main = paste("Log-Transformed Protein Levels:", protein),
+    xlab = "Log10(Protein Level)",
+    ylab = "Number of Subjects",
+    col = "gray80",
+    border = "white",
+    breaks = 20
+  )
+}
+
+
+
+
+# Question 2
+
+biomarker_untrimmed <- raw %>%
+  mutate(
+    subject = row_number(),
+    across(
+      all_of(protein_cols),
+      ~ ifelse(.x > 0, log10(.x), NA_real_)
+    )
+  ) %>%
+  mutate(
+    across(
+      all_of(protein_cols),
+      ~ as.numeric(scale(.x))
+    )
+  ) %>%
+  select(subject, group, all_of(protein_cols))
+
+outlier_counts <- biomarker_untrimmed %>%
+  pivot_longer(
+    cols = all_of(protein_cols),
+    names_to = "protein",
+    values_to = "value"
+  ) %>%
+  group_by(subject, group) %>%
+  summarise(
+    total_measurements = sum(!is.na(value)),
+    outlier_count = sum(abs(value) > 3, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    outlier_rate = outlier_count / total_measurements
+  )
+
+outlier_counts %>%
+  arrange(desc(outlier_count)) %>%
+  head(15) %>%
+  print()
+
+group_summary <- outlier_counts %>%
+  group_by(group) %>%
+  summarise(
+    number_of_subjects = n(),
+    average_outliers_per_subject = mean(outlier_count),
+    median_outliers_per_subject = median(outlier_count),
+    subjects_with_outliers = sum(outlier_count > 0),
+    average_outlier_rate = mean(outlier_rate),
+    .groups = "drop"
+  )
+
+print(group_summary)
+
+wilcox.test(outlier_count ~ group, data = outlier_counts)
+
+ggplot(outlier_counts, aes(x = group, y = outlier_count)) +
+  geom_boxplot(fill = "gray80", color = "gray30", outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.5, size = 1.5) +
+  labs(
+    title = "Outlying Protein Measurements per Subject",
+    x = "Group",
+    y = "Number of Outlying Values per Subject"
+  ) +
+  theme_minimal()
+
+```
 
 ### Methodological variations
 
