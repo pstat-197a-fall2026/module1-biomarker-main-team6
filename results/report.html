@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.5.57">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Kiera Doan, Laiyee Ke, Aaron Tang, Kevin Wu">
-<meta name="dcterms.date" content="2026-10-28">
+<meta name="dcterms.date" content="2026-10-29">
 
 <title>Biomarkers of ASD</title>
 <style>
@@ -22,6 +22,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -31,10 +65,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="report_files/libs/quarto-html/anchor.min.js"></script>
 <link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="report_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="report_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="report_files/libs/bootstrap/bootstrap-4bba5e2a3696111c7f0c20ecb83df5d3.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="report_files/libs/quarto-diagram/mermaid.min.js"></script>
 <script src="report_files/libs/quarto-diagram/mermaid-init.js"></script>
 <link href="report_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
@@ -68,7 +102,7 @@ ul.task-list li input[type="checkbox"] {
     <div>
     <div class="quarto-title-meta-heading">Updated</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">October 28, 2026</p>
+      <p class="date">October 29, 2026</p>
     </div>
   </div>
   
@@ -235,6 +269,92 @@ alternative hypothesis: true location shift is not equal to 0</code></pre>
 <section id="methodological-variations" class="level3">
 <h3 class="anchored" data-anchor-id="methodological-variations">Methodological variations</h3>
 <p>Task 3</p>
+<section id="hard-intersection-vs.-fuzzy-intersection" class="level4">
+<h4 class="anchored" data-anchor-id="hard-intersection-vs.-fuzzy-intersection">Hard Intersection vs.&nbsp;Fuzzy Intersection</h4>
+<p>In this section, we analyze the difference in the logistic regression results between protein candidates (obtained via the multiple t-tests and RF methods) joined by hard intersection and fuzzy intersection. Hard intersection refers to strictly obtaining the proteins that exist in both lists, while fuzzy intersection refers to obtaining the proteins that have similar names in both lists.</p>
+<p>To implement the fuzzy intersection, I used a fuzzy matching algorithm that made pairwise similarity comparisons between the two lists using the Jaro-Winkler similarity metric, and included both proteins in a result list if they had a similarity score below 0.3.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="do">## LOGISTIC REGRESSION</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Select subset of interest</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>proteins_sstar <span class="ot">&lt;-</span> <span class="fu">intersect</span>(proteins_s1, proteins_s2) <span class="co"># proteins_s1 = proteins selected by multiple t-tests</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>                                                      <span class="co"># proteins_s2 = proteins selected by RF</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Fuzzy intersection:</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># using fuzzy matching to grab elements that are similar to each other </span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(stringdist)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>proteins_fuzzy <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(proteins_s1)) { <span class="co"># compare element-wise similarity of proteins_s1 and proteins_s2</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(proteins_s2)) {</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    fuzzy_score <span class="ot">&lt;-</span> <span class="fu">stringdist</span>(proteins_s1[i], proteins_s2[j], <span class="at">method =</span> <span class="st">'jw'</span>)  </span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (fuzzy_score <span class="sc">&lt;</span> <span class="fl">0.3</span>) {</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      proteins_fuzzy <span class="ot">&lt;-</span> <span class="fu">c</span>(proteins_fuzzy, proteins_s1[i], proteins_s2[j]) <span class="co"># store both similar elements</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    } </span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>proteins_fuzzy <span class="ot">&lt;-</span> <span class="fu">unique</span>(proteins_fuzzy) <span class="co"># grab the unique proteins</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(proteins_fuzzy)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "DERM"       "RELT"       "MRC2"       "IgD"        "FSTL1"     
+[6] "FSTL3"      "Cadherin-5"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(proteins_sstar)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "DERM"       "RELT"       "MRC2"       "IgD"        "Cadherin-5"</code></pre>
+</div>
+</div>
+<p>The fuzzy matching algorithm picked up 2 extra proteins, FSTL1 and FSTL3, because they are similar to each other (they are one character apart). The other proteins in the result list were also in the list obtained by hard intersection.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Hard Intersection Results"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 3
+  .metric     .estimator .estimate
+  &lt;chr&gt;       &lt;chr&gt;          &lt;dbl&gt;
+1 sensitivity binary         0.812
+2 specificity binary         0.733
+3 accuracy    binary         0.774
+4 roc_auc     binary         0.883</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Fuzzy Intersection Results"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 3
+  .metric     .estimator .estimate
+  &lt;chr&gt;       &lt;chr&gt;          &lt;dbl&gt;
+1 sensitivity binary         0.647
+2 specificity binary         0.857
+3 accuracy    binary         0.742
+4 roc_auc     binary         0.891</code></pre>
+</div>
+</div>
+<p>It seems like the AUC and specificity scores are slightly higher in the fuzzy intersection case compared to the hard intersection case. However, the sensitivity is lower in the fuzzy intersection case than the hard intersection case, so a trade-off is present.</p>
+<div>
+
+</div>
+<div class="cell quarto-layout-panel" data-layout-ncol="2">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="report_files/figure-html/Result%20Graphs-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="report_files/figure-html/Result%20Graphs-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="report_files/figure-html/Result%20Graphs-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<p><img src="report_files/figure-html/Result%20Graphs-4.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</div>
+<p>Looking at the confusion matrices, the increase in specificity in the fuzzy intersection case is due to an increase in true positives and a decrease in false positives. The decrease in sensitivity, on the other hand, is due to a decrease in true positives and an increase in false negatives</p>
+<p>While there was an increase in AUC scores when using fuzzy intersection to select the common proteins among the RF model and the multiple t-tests, ultimately the magnitude of increase seems very small, making it hard to determine if there was any actual statistically significant difference. Additionally, there was a trade-off seen in the logistic regression results with the proteins gathered from fuzzy intersection vs.&nbsp;hard intersection: while there was an increase in specificity, there was also a decrease in sensitivity, which makes deciding which of the two sets of proteins to choose more convoluted on top of the small differences. For example, if a higher true positive detection of ASD is the goal, then maybe the proteins chosen by a hard intersection is more preferable, etc. So, all in all, it is very hard to tell whether the addition of the 2 proteins made a significant impact to the results before as the differences were small and a clear trade off exists.</p>
+</section>
 </section>
 <section id="improved-classifier" class="level3">
 <h3 class="anchored" data-anchor-id="improved-classifier">Improved classifier</h3>
@@ -326,8 +446,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    // For code content inside modals, clipBoardJS needs to be initialized with a container option
-    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -438,7 +556,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
-      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {
