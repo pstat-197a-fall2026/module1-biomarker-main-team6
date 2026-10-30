@@ -1,6 +1,6 @@
 ---
 title: "Biomarkers of ASD"
-subtitle: "If you want a subtitle put it here"
+subtitle: "Group 6"
 author: "Kiera Doan, Laiyee Ke, Aaron Tang, Kevin Wu"
 date: last-modified
 published-title: "Updated"
