@@ -23,7 +23,11 @@ library(randomForest)
 library(tidymodels)
 library(modelr)
 library(yardstick)
+<<<<<<< HEAD
 load("../data/biomarker-clean.RData")
+=======
+load('../data/biomarker-clean.RData')
+>>>>>>> c25788e (idk)
 library(tidyverse)
 ```
 
@@ -214,6 +218,98 @@ Outliers were not more common in one group. ASD subjects averaged 13.2 outlying 
 
 ### Methodological variations
 
+<<<<<<< HEAD
+=======
+Task 3
+
+#### Training-only protein selection and larger candidate lists
+
+We examined how classification performance changed when protein selection was restricted to the training data and when larger candidate lists were considered. The processed dataset was randomly divided into 123 training subjects and 31 test subjects. The test set contained 15 subjects with ASD and 16 typically developing (TD) subjects.
+
+Welch's t-tests and a random forest with 1,000 trees were applied only to the training data. Proteins shared between the two methods' top-ranked lists were then used in logistic regression. We compared selecting the top 10 proteins per method with selecting the top 25, using the same training and test subjects for both models.
+
+```{r}
+#| label: q3ab-analysis
+#| echo: false
+#| message: false
+#| warning: false
+
+# Support rendering from either results/ or the repository root.
+project_root <- if (file.exists("scripts/Laiyee-Q3ab.R")) "." else ".."
+
+# Keep this analysis separate from other objects in the report.
+q3ab <- new.env()
+
+# The script's final expression is its ROC plot.
+q3ab_output <- withr::with_dir(
+  project_root,
+  source("scripts/Laiyee-Q3ab.R", local = q3ab, echo = FALSE)
+)
+
+q3ab_roc <- q3ab_output$value
+
+q3ab_table <- dplyr::bind_rows(
+  dplyr::mutate(
+    q3ab$results_a,
+    Model = paste0(
+      "Top 10 per method (",
+      length(q3ab$proteins_sstar_a),
+      " proteins)"
+    )
+  ),
+  dplyr::mutate(
+    q3ab$results_b,
+    Model = paste0(
+      "Top 25 per method (",
+      length(q3ab$proteins_sstar_b),
+      " proteins)"
+    )
+  )
+) |>
+  dplyr::select(Model, .metric, .estimate) |>
+  tidyr::pivot_wider(
+    names_from = .metric,
+    values_from = .estimate
+  ) |>
+  dplyr::rename(
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    Accuracy = accuracy,
+    AUC = roc_auc
+  )
+```
+
+```{r}
+#| label: tbl-q3ab-performance
+#| tbl-cap: "Held-out test performance for training-only protein selection."
+#| echo: false
+
+knitr::kable(q3ab_table, digits = 3)
+```
+
+Selecting the top 10 proteins from each method produced a five-protein intersection: **DERM, RET, C1QR1, Calcineurin, and IgD**. This model correctly classified 18 of the 31 test subjects, with an accuracy of 58.1% and an AUC of 0.713 (@tbl-q3ab-performance).
+
+For comparison, the in-class analysis achieved an accuracy of 77.4% and an AUC of 0.883. Its higher performance is consistent with optimism introduced by selecting proteins using the full dataset before splitting. However, the analyses also used different random splits, so the difference cannot be attributed entirely to the change in feature selection.
+
+Increasing the candidate lists to 25 proteins produced an 11-protein panel: **DERM, RET, C1QR1, MMP-2, Calcineurin, RELT, IgD, TSP4, MAPK2, MIA, and IL-18 Ra**. Accuracy increased to 61.3% and AUC increased to 0.746. Specificity improved from 62.5% to 75.0%, while sensitivity decreased from 53.3% to 46.7%. The larger model correctly identified two additional TD subjects while missing one additional ASD subject.
+
+The ROC curves in @fig-q3ab-roc show discrimination across classification thresholds. The larger panel achieved a modestly higher AUC, although its sensitivity was lower at the 0.5 probability threshold used for classification.
+
+```{r}
+#| label: fig-q3ab-roc
+#| fig-cap: "ROC curves for logistic regression using the intersection of the top 10 or top 25 proteins selected by each method. Feature selection and model fitting used training data; curves were evaluated on the same held-out test set."
+#| fig-width: 9
+#| fig-height: 4.5
+#| echo: false
+
+print(q3ab_roc)
+```
+
+These results illustrate a trade-off between identifying ASD subjects and correctly identifying TD subjects. Because the test set contained only 31 subjects, the observed improvements do not establish that the larger panel consistently performs better. Repeated evaluation, with feature selection performed within each training partition, would help assess the stability of these findings.
+
+Although feature selection was restricted to training subjects, the supplied cleaned dataset was standardized and capped before splitting. A fully independent evaluation would also estimate these preprocessing parameters using training data only.
+
+>>>>>>> c25788e (idk)
 #### Hard Intersection vs. Fuzzy Intersection
 
 3\. Experiment with the following modifications:
