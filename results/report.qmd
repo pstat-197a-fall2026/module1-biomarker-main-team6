@@ -23,11 +23,7 @@ library(randomForest)
 library(tidymodels)
 library(modelr)
 library(yardstick)
-<<<<<<< HEAD
 load("../data/biomarker-clean.RData")
-=======
-load('../data/biomarker-clean.RData')
->>>>>>> c25788e (idk)
 library(tidyverse)
 ```
 
@@ -218,8 +214,6 @@ Outliers were not more common in one group. ASD subjects averaged 13.2 outlying 
 
 ### Methodological variations
 
-<<<<<<< HEAD
-=======
 Task 3
 
 #### Training-only protein selection and larger candidate lists
@@ -309,7 +303,6 @@ These results illustrate a trade-off between identifying ASD subjects and correc
 
 Although feature selection was restricted to training subjects, the supplied cleaned dataset was standardized and capped before splitting. A fully independent evaluation would also estimate these preprocessing parameters using training data only.
 
->>>>>>> c25788e (idk)
 #### Hard Intersection vs. Fuzzy Intersection
 
 3\. Experiment with the following modifications:
