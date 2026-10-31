@@ -23,7 +23,7 @@ library(randomForest)
 library(tidymodels)
 library(modelr)
 library(yardstick)
-load('data/biomarker-clean.RData')
+load("../data/biomarker-clean.RData")
 library(tidyverse)
 ```
 
@@ -73,7 +73,7 @@ Summarize your findings here. I've included some subheaders in a way that seems 
 
 ### Impact of preprocessing and outliers
 
-Tasks 1-2
+1\. What do you imagine is the reason for log-transforming the protein levels in `biomarker-raw.csv`? (Hint: look at the distribution of the raw values for a sample of proteins.)
 
 ```{r}
 
@@ -111,9 +111,11 @@ for (protein in sample_proteins) {
   values <- raw[[protein]]
   values <- values[is.finite(values) & values > 0]
   
+  par(mfrow = c(1, 2), mar = c(5, 5, 5, 2), cex.main = 1.1, cex.lab = 1.2, cex.axis = 1.1)
+  
   hist(
     values,
-    main = paste("Raw Protein Levels:", protein),
+    main = paste0("Raw Protein Levels:\n", protein),
     xlab = "Protein Level",
     ylab = "Number of Subjects",
     col = "gray80",
@@ -123,7 +125,7 @@ for (protein in sample_proteins) {
   
   hist(
     log10(values),
-    main = paste("Log-Transformed Protein Levels:", protein),
+    main = paste0("Log-Transformed Protein Levels:\n", protein),
     xlab = "Log10(Protein Level)",
     ylab = "Number of Subjects",
     col = "gray80",
@@ -132,9 +134,15 @@ for (protein in sample_proteins) {
   )
 }
 
+```
 
+The raw protein levels are heavily skewed to the right. For most subjects the values are low, but a few subjects have very high values that stretch out the tail. TRAIL R1, for example, has one subject near 7,000 while almost everyone else is under 3,000. The same pattern shows up in the other proteins we plotted, such as Carbonic anhydrase III and PBEF, where most subjects sit at low levels and a handful are far above them. After taking the log (base 10), the histograms look much more balanced and bell-shaped. The log works because it shrinks large values much more than small ones, so a jump from 1,000 to 7,000 becomes a small step on the log scale. For the four proteins we plotted, skewness fell from between 1.9 and 6.5 on the raw scale to between 0.9 and 2.2 after logging. Across all proteins, the typical skewness drops from 2.26 to 0.83, where a value closer to 0 means a more symmetric distribution.
 
+This matters because the methods used later, like scaling, t-tests, and logistic regression, can be thrown off by a few very large values. These methods rely on averages and spread, so a few extreme subjects can pull the average up and make it look like groups differ when they don’t. Logging reduces their pull and makes the data easier to compare across subjects. It doesn’t remove the skew completely, and TRAIL R1 still has a skewness of about 2.2 after logging, so some extreme values remain. This is why we look at outliers in the next step.
 
+2\. Temporarily remove the outlier trimming from preprocessing and do some exploratory analysis of the outlying values. Are there specific *subjects* (not values) that seem to be outliers? If so, are outliers more frequent in one group or the other? (Hint: consider tabulating the number of outlying values per subject.)
+
+```{r}
 # Question 2
 
 biomarker_untrimmed <- raw %>%
@@ -198,14 +206,25 @@ ggplot(outlier_counts, aes(x = group, y = outlier_count)) +
     y = "Number of Outlying Values per Subject"
   ) +
   theme_minimal()
-
 ```
+
+We removed the cap at ±3 and counted how many “outlying” values (more than 3 standard deviations from the mean) each subject had, out of 1,317 proteins. If the data were roughly normal, we would expect only about 4 per subject. Instead, the typical subject had about 8 and the average was about 15, which means a few subjects pull the average up. Nearly every subject (152 of 154) had at least one outlying value, so having an outlier is common, and what stands out is how many some subjects have. Six subjects (154, 108, 9, 121, 52, and 77) each had more than 100 outlying values, and subject 147 had 77. The six are only about 4% of the sample but account for about 32% of all outlying values, and the top 10 subjects together hold about 41%. So the outliers are mostly about particular subjects being unusual across many proteins, and not just random extreme measurements. This could point to something different about how those subjects’ samples were collected or measured, but we can’t tell that from this data.
+
+Outliers were not more common in one group. ASD subjects averaged 13.2 outlying values and TD subjects averaged 17.6, but the medians were the same (8.5), and the difference was not statistically significant (p = 0.82). A p-value that large means a gap like this would show up very often just by chance. The TD average is higher mainly because four of the six most extreme subjects are TD. If we set aside the seven most extreme subjects, the groups are almost identical (10.3 vs. 10.6, p = 0.49). In both groups, most outliers were unusually high values and not unusually low ones (about 11 high versus 3 low per ASD subject, and 15 high versus 3 low per TD subject). This matches the right-skewed shape we saw in the raw data, where a few very large values stretch out the tail. Capping values at ±3 limits the effect of these subjects, but they are still unusual across many proteins, so they could still influence later steps like the t-tests and models.
 
 ### Methodological variations
 
-Task 3
-
 #### Hard Intersection vs. Fuzzy Intersection
+
+3\. Experiment with the following modifications:
+
+-   repeat the analysis but carry out the entire selection procedure on a training partition -- in other words, set aside some testing data at the very beginning and don't use it until you are evaluating accuracy at the very end
+
+-   choose a larger number (more than ten) of top predictive proteins using each selection method
+
+-   use a fuzzy intersection instead of a hard intersection to combine the sets of top predictive proteins across selection methods
+
+How are results affected by each modification?
 
 ```{r}
 #| echo: false
@@ -426,4 +445,10 @@ While there was an increase in AUC scores when using fuzzy intersection to selec
 
 ### Improved classifier
 
-Task 4
+4\. Use any method to find either:
+
+-   a simpler panel that achieves comparable classification accuracy
+
+-   an alternative panel that achieves improved classification accuracy
+
+Benchmark your results against the in-class analysis.
