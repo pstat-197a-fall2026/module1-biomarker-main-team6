@@ -17,7 +17,7 @@ execute:
 Use this as a template. Keep the headers and remove all other text. In all, your report can be quite short. When it is complete, render and then push changes to your team repository.
 
 ```{r}
-# load any other packages and read data herelibrary(tidyverse)
+# load any other packages and read data here
 library(infer)
 library(randomForest)
 library(tidymodels)
